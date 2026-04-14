@@ -9,14 +9,24 @@ import os
 # ==========================================
 # CONFIGURAÇÕES INICIAIS E VARIÁVEIS GLOBAIS
 # ==========================================
-mp_drawing = mp.solutions.drawing_utils
-mp_hands = mp.solutions.hands
+
+# Nova API de Tasks do MediaPipe
+from mediapipe.tasks.python import BaseOptions
+from mediapipe.tasks.python.vision import (
+    HandLandmarker,
+    HandLandmarkerOptions,
+    HandLandmarkerResult,
+    RunningMode,
+)
+
+# Caminho do modelo (baixado previamente)
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand_landmarker.task")
 
 TAMANHO_MATRIZ = 10
 LARGURA_BLOCO = 40  
 ALTURA_BLOCO = 20   
-ORIGEM_X = 320      
-ORIGEM_Y = 150      
+ORIGEM_X = 640      # Centralizado horizontalmente (1280/2)
+ORIGEM_Y = 370      # Centralizado verticalmente na tela
 
 mapa_alturas = {} 
 blocos = []       
@@ -143,20 +153,43 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
 ultimo_tempo = 0
 cursor_suave_x, cursor_suave_y = None, None # Variáveis para o Anti-Jitter
 
-with mp_hands.Hands(
-    model_complexity=0,
-    min_detection_confidence=0.7,
+# Variável compartilhada para receber resultados assíncronos
+latest_result: HandLandmarkerResult | None = None
+
+def on_result(result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+    """Callback chamado pelo HandLandmarker em modo LIVE_STREAM"""
+    global latest_result
+    latest_result = result
+
+# Configurar o HandLandmarker com a nova API Tasks
+options = HandLandmarkerOptions(
+    base_options=BaseOptions(model_asset_path=MODEL_PATH),
+    running_mode=RunningMode.LIVE_STREAM,
+    num_hands=2,
+    min_hand_detection_confidence=0.7,
+    min_hand_presence_confidence=0.7,
     min_tracking_confidence=0.7,
-    max_num_hands=2) as hands: 
-    
+    result_callback=on_result,
+)
+
+with HandLandmarker.create_from_options(options) as landmarker:
+    frame_timestamp_ms = 0
+
     while cap.isOpened():
         success, image = cap.read()
-        if not success: break
+        if not success:
+            break
 
         image = cv2.flip(image, 1)
         h_tela, w_tela, _ = image.shape
+
+        # Converter para RGB e criar mp.Image
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        results = hands.process(image_rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+
+        # Enviar frame para processamento assíncrono
+        frame_timestamp_ms += 33  # ~30 FPS
+        landmarker.detect_async(mp_image, frame_timestamp_ms)
 
         # Desenhar Chão
         for gx in range(TAMANHO_MATRIZ):
@@ -169,13 +202,16 @@ with mp_hands.Hands(
         acao_adicionar = False
         acao_remover = False
 
-        if results.multi_hand_landmarks and results.multi_handedness:
-            for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                label = handedness.classification[0].label 
+        # Processar resultados do HandLandmarker
+        result = latest_result
+        if result and result.hand_landmarks and result.handedness:
+            for hand_landmarks, handedness in zip(result.hand_landmarks, result.handedness):
+                label = handedness[0].category_name
 
+                # Converter landmarks normalizados para coordenadas de tela
                 if label == 'Left':
-                    raw_x = int(hand_landmarks.landmark[8].x * w_tela)
-                    raw_y = int(hand_landmarks.landmark[8].y * h_tela)
+                    raw_x = int(hand_landmarks[8].x * w_tela)
+                    raw_y = int(hand_landmarks[8].y * h_tela)
                     
                     # Filtro EMA (Anti-Jitter) para deixar a mira suave
                     if cursor_suave_x is None:
@@ -188,9 +224,12 @@ with mp_hands.Hands(
                     cv2.circle(image, (cursor_suave_x, cursor_suave_y), 4, cor_atual, -1)
 
                 elif label == 'Right':
-                    x_pol, y_pol = int(hand_landmarks.landmark[4].x * w_tela), int(hand_landmarks.landmark[4].y * h_tela)
-                    x_ind, y_ind = int(hand_landmarks.landmark[8].x * w_tela), int(hand_landmarks.landmark[8].y * h_tela)
-                    x_med, y_med = int(hand_landmarks.landmark[12].x * w_tela), int(hand_landmarks.landmark[12].y * h_tela)
+                    x_pol = int(hand_landmarks[4].x * w_tela)
+                    y_pol = int(hand_landmarks[4].y * h_tela)
+                    x_ind = int(hand_landmarks[8].x * w_tela)
+                    y_ind = int(hand_landmarks[8].y * h_tela)
+                    x_med = int(hand_landmarks[12].x * w_tela)
+                    y_med = int(hand_landmarks[12].y * h_tela)
                     
                     if math.hypot(x_ind - x_pol, y_ind - y_pol) < 40:
                         acao_adicionar = True
