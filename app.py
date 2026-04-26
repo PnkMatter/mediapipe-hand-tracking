@@ -336,10 +336,31 @@ with col2:
     """)
 
 with col1:
+    RTC_CONFIG = {
+        "iceServers": [
+            {"urls": ["stun:stun.l.google.com:19302"]},
+            {"urls": ["stun:stun1.l.google.com:19302"]},
+            {
+                "urls": "turn:openrelay.metered.ca:80",
+                "username": "openrelayproject",
+                "credential": "openrelayproject",
+            },
+            {
+                "urls": "turn:openrelay.metered.ca:443",
+                "username": "openrelayproject",
+                "credential": "openrelayproject",
+            },
+            {
+                "urls": "turn:openrelay.metered.ca:443?transport=tcp",
+                "username": "openrelayproject",
+                "credential": "openrelayproject",
+            },
+        ]
+    }
     ctx = webrtc_streamer(
         key="voxel-builder",
         video_processor_factory=VoxelProcessor,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        rtc_configuration=RTC_CONFIG,
         media_stream_constraints={"video": {"width": 640, "height": 480}, "audio": False},
         async_processing=True,
     )
