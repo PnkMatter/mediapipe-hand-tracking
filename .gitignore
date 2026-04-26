@@ -1,0 +1,29 @@
+# Modelo MediaPipe (baixado separadamente ~7MB)
+hand_landmarker.task
+
+# Saves e exports do jogo
+mundo_voxel.json
+voxel_art.obj
+
+# Arquivo de prompts pessoal
+prompt.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store

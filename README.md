@@ -28,12 +28,14 @@ An augmented reality voxel construction engine controlled entirely by hand gestu
 
 ## Overview
 
-This project combines computer vision and isometric rendering to create a Minecraft-like building experience in augmented reality. The system tracks two hands simultaneously:
+This project combines computer vision and isometric rendering to create a Minecraft-like building experience in augmented reality. The system tracks two hands simultaneously through a **State Machine** with four modes:
 
-- **Left hand** → Controls a cursor/crosshair on the isometric grid
-- **Right hand** → Performs actions (place or delete blocks) via pinch gestures
+- **IDLE** — No action, cursor tracking only
+- **BUILDING** — Place blocks (single or continuous)
+- **ERASING** — Remove blocks
+- **MOVING MODEL** — Grab & move the entire structure
 
-The voxel world is rendered as an isometric grid overlaid on your live camera feed, giving it an AR feel.
+Blocks float freely in 3D space with no base grid — build anywhere!
 
 ---
 
@@ -42,14 +44,17 @@ The voxel world is rendered as an isometric grid overlaid on your live camera fe
 | Feature | Description |
 |---|---|
 | ✋ **Dual Hand Tracking** | Left hand for aiming, right hand for actions |
-| 🧱 **Voxel Placement** | Stack blocks up to 10 layers high on a 10×10 grid |
-| 🗑️ **Block Deletion** | Remove blocks from the top of any column |
-| 🎨 **Color Palette** | 6 selectable colors (Green, Red, Blue, Yellow, Magenta, White) |
-| 👻 **Ghost Preview** | Transparent preview of where the next block will be placed |
+| 🧱 **Free-form Building** | Place blocks anywhere in 3D space (no base grid) |
+| 🔄 **Continuous Building** | Hold pinch and drag to build walls and lines |
+| 🗑️ **Block Deletion** | Open palm gesture removes the nearest block |
+| 👻 **Face-Adjacent Ghost** | Preview appears on the face of existing blocks closest to your finger |
+| 📐 **Block Scaling** | Toggle 1×, 2×, or 3× block size via gesture or keyboard |
+| 🎨 **Color Palette** | 6 colors, switchable via gesture or on-screen palette |
+| 🤏 **Grab & Move** | Two closed fists to translate the entire structure |
+| ❓ **Help Screen** | Press `H` to see all shortcuts and gestures |
 | 💾 **Save / Load** | Persist your builds to JSON files |
-| 📦 **OBJ Export** | Export your voxel art as a 3D `.obj` mesh for use in Blender, Unity, etc. |
-| 🎯 **Anti-Jitter Filter** | EMA (Exponential Moving Average) smoothing for stable cursor tracking |
-| 🖥️ **Isometric Rendering** | Pseudo-3D rendering with shading and depth sorting |
+| 📦 **OBJ Export** | Export as a 3D `.obj` mesh for Blender, Unity, etc. |
+| 🎯 **Anti-Jitter Filter** | EMA smoothing for stable cursor tracking |
 
 ---
 
@@ -64,39 +69,46 @@ The tip of your **index finger** (landmark #8) controls a crosshair on screen. A
 
 #### Actions (Right Hand)
 
-| Gesture | Landmarks | Action |
+| Gesture | Description | Action |
 |---|---|---|
-| **Pinch (Index + Thumb)** | Tip of index (#8) close to tip of thumb (#4) | **Place block** at cursor position |
-| **Pinch (Middle + Thumb)** | Tip of middle (#12) close to tip of thumb (#4) | **Delete block** at cursor position |
+| **Pinch (Index + Thumb)** | Tips of index and thumb together | **Place block** at ghost position |
+| **Hold pinch + move** | Keep pinch while moving left hand | **Continuous building** along path |
+| **Open palm (5 fingers)** | All fingers extended | **Delete** nearest block |
+| **Thumb + Ring finger** | Tips together | **Cycle color** to next in palette |
+| **Thumb + Pinky** | Tips together | **Cycle block scale** (1×→2×→3×) |
 
-> The pinch threshold is `40 pixels`. A cooldown of `0.4 seconds` prevents accidental rapid placement.
+#### Two-Hand Gestures
+
+| Gesture | Action |
+|---|---|
+| **Two closed fists** | **Grab & Move** — translate entire structure |
 
 ### Isometric Projection
 
-Blocks are rendered using a diamond-shaped isometric projection:
+Blocks are rendered using a diamond-shaped isometric projection with three shaded faces, creating a convincing 3D appearance using only 2D drawing primitives.
 
-```
-         Top Face (lighter)
-        /         \
-       /           \
-Left Face          Right Face
-(base color)       (darker)
-```
+### Ghost Block (Face-Adjacent)
 
-Each cube is composed of three quadrilaterals with different brightness levels, creating a convincing 3D appearance using only 2D drawing primitives.
+The ghost preview block appears on the **face** of an existing block closest to your cursor:
+- Cursor above a block → ghost on **top face**
+- Cursor to the left → ghost on **left face**
+- Cursor to the right → ghost on **right face**
+
+If no blocks exist, the ghost appears at the grid position at Z=0.
 
 ---
 
 ## Demo Controls
 
 ```
-  Left Hand (index finger)          Right Hand (pinch gestures)
-  ┌──────────────────────┐          ┌──────────────────────────┐
-  │                      │          │                          │
-  │   👆 Index finger    │          │  👌 Index+Thumb = PLACE  │
-  │   moves the cursor   │          │  🤏 Middle+Thumb = DELETE│
-  │                      │          │                          │
-  └──────────────────────┘          └──────────────────────────┘
+  Left Hand (index finger)          Right Hand (gesture actions)
+  ┌──────────────────────┐          ┌──────────────────────────────┐
+  │                      │          │                              │
+  │   👆 Index finger    │          │  👌 Pinch = PLACE            │
+  │   moves the cursor   │          │  ✋ Open palm = DELETE        │
+  │                      │          │  🤏 Thumb+Ring = COLOR        │
+  │                      │          │  🤙 Thumb+Pinky = SCALE      │
+  └──────────────────────┘          └──────────────────────────────┘
 ```
 
 ---
@@ -121,7 +133,7 @@ cd mediapipe-hand-tracking
 ### 2. Install dependencies
 
 ```bash
-pip install opencv-python mediapipe numpy
+pip install -r requirements.txt
 ```
 
 ### 3. Download the Hand Landmarker model
@@ -136,7 +148,7 @@ curl -O https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_lan
 Invoke-WebRequest -Uri "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task" -OutFile "hand_landmarker.task"
 ```
 
-> **Note:** The `.task` file is ~5 MB and is **not included in the repository** to keep it lightweight.
+> **Note:** The `.task` file is ~7 MB and is **not included in the repository** (listed in `.gitignore`).
 
 ### 4. Verify your setup
 
@@ -152,13 +164,12 @@ python -c "import cv2, mediapipe, numpy; print('All dependencies OK!')"
 python main.py
 ```
 
-1. The application will open your webcam and display the isometric grid overlaid on the camera feed.
-2. Use your **left hand's index finger** to move the cursor over the grid.
-3. Use your **right hand** to perform pinch gestures:
-   - **Index + Thumb pinch** → Place a block
-   - **Middle + Thumb pinch** → Delete the top block
-4. Hover the cursor over the **color palette** (top-left) and pinch to select a new color.
-5. Press **ESC** to exit.
+1. The application will open your webcam and display the AR view.
+2. Use your **left hand's index finger** to move the cursor.
+3. Use your **right hand** to perform gestures (pinch, open palm, etc.)
+4. Hover the cursor over the **color palette** (top-left) and pinch to select a color.
+5. Press **H** to see all available shortcuts.
+6. Press **ESC** to exit.
 
 ---
 
@@ -166,11 +177,14 @@ python main.py
 
 | Key | Action |
 |---|---|
+| `H` | Toggle help screen (shows all shortcuts) |
 | `ESC` | Quit the application |
 | `C` | Clear all blocks |
 | `S` | Save the current build to `mundo_voxel.json` |
-| `L` | Load a previously saved build from `mundo_voxel.json` |
-| `O` | Export the build as a 3D mesh to `voxel_art.obj` |
+| `L` | Load a previously saved build |
+| `O` | Export the build as `voxel_art.obj` |
+| `R` | Reset camera position (after Grab & Move) |
+| `+` / `-` | Increase / decrease block scale |
 
 ---
 
@@ -179,10 +193,13 @@ python main.py
 ```
 mediapipe-hand-tracking/
 ├── main.py                  # Main application (rendering, tracking, logic)
-├── hand_landmarker.task     # MediaPipe Hand Landmarker model (downloaded separately)
-├── mundo_voxel.json         # Save file for voxel builds (auto-generated)
-├── voxel_art.obj            # Exported 3D mesh (auto-generated)
-└── README.md                # This file
+├── hand_landmarker.task     # MediaPipe model (downloaded separately, in .gitignore)
+├── requirements.txt         # Python dependencies
+├── .gitignore               # Git ignore rules
+├── LICENSE                  # MIT License
+├── README.md                # This file
+├── mundo_voxel.json         # Save file (auto-generated, in .gitignore)
+└── voxel_art.obj            # Exported 3D mesh (auto-generated, in .gitignore)
 ```
 
 ---
@@ -194,39 +211,61 @@ mediapipe-hand-tracking/
 ```
 ┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Webcam    │───>│  MediaPipe Hand  │───>│  Gesture Logic  │
-│   (OpenCV)  │    │   Landmarker     │    │  (Pinch detect) │
+│   (OpenCV)  │    │   Landmarker     │    │  (6 detectors)  │
 └─────────────┘    └──────────────────┘    └────────┬────────┘
                                                     │
-                                                    v
-┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐
+                                              ┌─────┴─────┐
+                                              │   State    │
+                                              │  Machine   │
+                                              └─────┬─────┘
+                                                    │
+┌─────────────┐    ┌──────────────────┐    ┌────────┴────────┐
 │   Display   │<───│  Isometric       │<───│  Voxel Engine   │
 │   (OpenCV)  │    │  Renderer        │    │  (Add/Remove)   │
 └─────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### State Machine
+
+```
+          ┌──────────┐
+          │   IDLE   │◄─── No gesture detected
+          └────┬─────┘
+               │
+    ┌──────────┼──────────┐
+    │          │          │
+    ▼          ▼          ▼
+┌────────┐ ┌────────┐ ┌────────────┐
+│BUILDING│ │ERASING │ │MOVING_MODEL│
+│(Pinch) │ │(Palm)  │ │(2 Fists)   │
+└────────┘ └────────┘ └────────────┘
 ```
 
 ### Key Parameters
 
 | Parameter | Value | Description |
 |---|---|---|
-| `TAMANHO_MATRIZ` | 10 | Grid size (10×10 base) |
+| `TAMANHO_MATRIZ` | 10 | Maximum grid range |
 | `LARGURA_BLOCO` | 40 px | Isometric block width |
 | `ALTURA_BLOCO` | 20 px | Isometric block height |
-| `ORIGEM_X` | 640 px | Grid horizontal origin (screen center) |
-| `ORIGEM_Y` | 370 px | Grid vertical origin (screen center) |
-| `num_hands` | 2 | Maximum number of tracked hands |
+| `EMA_ALPHA` | 0.3 | Cursor smoothing factor |
+| `escala_bloco` | 1-3 | Block scale (1×, 2×, 3×) |
+| `num_hands` | 2 | Maximum tracked hands |
 | `min_detection_confidence` | 0.7 | Hand detection threshold |
-| `min_tracking_confidence` | 0.7 | Hand tracking threshold |
 
 ### MediaPipe Tasks API
 
-This project uses the **new MediaPipe Tasks API** (`mp.tasks.python.vision.HandLandmarker`) with `LIVE_STREAM` running mode for asynchronous, non-blocking hand detection. This is the modern replacement for the deprecated `mp.solutions.hands` API.
+This project uses the **new MediaPipe Tasks API** (`mp.tasks.python.vision.HandLandmarker`) with `LIVE_STREAM` running mode for asynchronous, non-blocking hand detection.
 
-### Rendering Pipeline
+### Gesture Detection Functions
 
-1. **Floor rendering** — Draws the 10×10 base grid at `z = -1`
-2. **UI rendering** — Draws the color palette overlay
-3. **Ghost block** — Renders a semi-transparent preview block (50% opacity via `cv2.addWeighted`)
-4. **Saved blocks** — Renders all placed blocks sorted by depth (`z`, then `x + y`) for correct overlap
+| Function | Gesture | Landmarks Used |
+|---|---|---|
+| `detectar_pinca()` | Pinch | Thumb tip (#4) + Index tip (#8) |
+| `detectar_mao_espalmada()` | Open palm | All 5 finger tips vs PIPs |
+| `detectar_punho_fechado()` | Closed fist | All tips below MCPs |
+| `detectar_polegar_anelar()` | Thumb + Ring | Thumb tip (#4) + Ring tip (#16) |
+| `detectar_polegar_mindinho()` | Thumb + Pinky | Thumb tip (#4) + Pinky tip (#20) |
 
 ### Save Format (`mundo_voxel.json`)
 
@@ -240,24 +279,20 @@ This project uses the **new MediaPipe Tasks API** (`mp.tasks.python.vision.HandL
 
 ### OBJ Export
 
-Each voxel is exported as a unit cube (1×1×1) with 8 vertices and 6 quad faces. The resulting `.obj` file can be imported directly into Blender, Unity, Unreal Engine, or any 3D software.
+Each voxel is exported as a unit cube with 8 vertices and 6 quad faces. The `.obj` file can be imported into Blender, Unity, Unreal Engine, or any 3D software.
 
 ---
 
 ## Troubleshooting
 
-### `AttributeError: module 'mediapipe' has no attribute 'solutions'`
+### `FileNotFoundError: hand_landmarker.task`
 
-You're using MediaPipe ≥ 0.10.30 which removed the legacy `solutions` API. This project already uses the new Tasks API — make sure you're running the latest version of `main.py`.
+Download the model file. See [Installation — Step 3](#3-download-the-hand-landmarker-model).
 
 ### Camera not opening / black screen
 
 - Verify your webcam is connected and not being used by another application.
 - Try changing `cv2.VideoCapture(0)` to `cv2.VideoCapture(1)` if you have multiple cameras.
-
-### `FileNotFoundError: hand_landmarker.task`
-
-Download the model file. See [Installation — Step 3](#3-download-the-hand-landmarker-model).
 
 ### Low FPS / laggy tracking
 
@@ -267,7 +302,6 @@ Download the model file. See [Installation — Step 3](#3-download-the-hand-land
   cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
   cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
   ```
-- The `model_complexity` is already set to the lightest option.
 
 ### Hands not detected / wrong hand labels
 

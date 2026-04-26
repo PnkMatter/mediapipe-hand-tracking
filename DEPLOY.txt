@@ -1,0 +1,132 @@
+========================================================
+  GUIA DE DEPLOY — AR Voxel Builder no Hugging Face Spaces
+========================================================
+
+PLATAFORMA: Hugging Face Spaces (Docker SDK)
+CUSTO: Gratuito (tier básico com CPU)
+URL FINAL: https://huggingface.co/spaces/SEU_USUARIO/ar-voxel-builder
+
+========================================================
+PASSO 1 — Criar conta no Hugging Face
+========================================================
+1. Acesse https://huggingface.co/join
+2. Crie sua conta (pode usar login com GitHub/Google)
+3. Confirme o email
+
+========================================================
+PASSO 2 — Criar um novo Space
+========================================================
+1. Acesse https://huggingface.co/new-space
+2. Preencha:
+   - Owner: seu usuário
+   - Space name: ar-voxel-builder
+   - License: MIT
+   - SDK: Docker  (selecione "Docker")
+   - Hardware: CPU Basic (gratuito)
+3. Clique em "Create Space"
+
+========================================================
+PASSO 3 — Fazer upload dos arquivos
+========================================================
+
+OPÇÃO A — Via interface web (mais fácil):
+
+1. No seu Space, clique na aba "Files and versions"
+2. Clique em "Add file" > "Upload files"
+3. Faça upload dos seguintes arquivos do seu projeto:
+
+   OBRIGATÓRIOS:
+   - app.py              (aplicação Streamlit)
+   - requirements.txt    (dependências Python)
+   - Dockerfile          (configuração do container)
+
+   OPCIONAIS (recomendados):
+   - README.md           (descrição do projeto)
+   - LICENSE             (licença MIT)
+
+   NÃO ENVIE:
+   - main.py             (versão local, não funciona na web)
+   - hand_landmarker.task (será baixado automaticamente)
+   - mundo_voxel.json    (arquivo de save local)
+   - prompt.txt          (arquivo de prompts pessoal)
+   - packages.txt        (não é necessário com Docker)
+
+4. Clique em "Commit changes"
+
+OPÇÃO B — Via Git (para desenvolvedores):
+
+   git clone https://huggingface.co/spaces/SEU_USUARIO/ar-voxel-builder
+   cd ar-voxel-builder
+
+   # Copie os arquivos necessários para esta pasta:
+   # app.py, requirements.txt, Dockerfile, README.md, LICENSE
+
+   git add .
+   git commit -m "Initial deploy"
+   git push
+
+========================================================
+PASSO 4 — Aguardar o build
+========================================================
+1. O Hugging Face vai automaticamente:
+   - Construir o container Docker
+   - Instalar as dependências
+   - Iniciar o Streamlit na porta 7860
+2. O build leva de 3 a 8 minutos
+3. Acompanhe o progresso na aba "Logs" do Space
+4. Quando aparecer "You can now view your Streamlit app"
+   o aplicativo está no ar!
+
+========================================================
+PASSO 5 — Testar
+========================================================
+1. Acesse a URL do seu Space
+2. O navegador vai pedir permissão para usar a webcam
+3. Clique em "START" no player de vídeo
+4. Use os gestos com as mãos para construir
+5. Use os controles no painel lateral (cor, escala, etc.)
+
+========================================================
+SOLUÇÃO DE PROBLEMAS
+========================================================
+
+PROBLEMA: Vídeo não conecta / tela preta
+- Verifique se o navegador tem permissão de webcam
+- Tente em Chrome ou Firefox (Safari pode ter problemas)
+- Tente em aba anônima (limpa cache)
+
+PROBLEMA: Build falha no Hugging Face
+- Verifique os logs na aba "Logs" do Space
+- Certifique-se que o Dockerfile está correto
+- Certifique-se que o requirements.txt está correto
+
+PROBLEMA: App lento / muita latência
+- Normal no tier gratuito (~100-300ms de delay)
+- Para melhor experiência, use a versão local (main.py)
+
+PROBLEMA: "Model not found"
+- O app baixa o modelo automaticamente na primeira vez
+- Se falhar, verifique os logs para erros de rede
+
+========================================================
+ESTRUTURA DE ARQUIVOS PARA O SPACE
+========================================================
+
+ar-voxel-builder/
+├── app.py              ← Aplicação Streamlit (OBRIGATÓRIO)
+├── requirements.txt    ← Dependências Python (OBRIGATÓRIO)
+├── Dockerfile          ← Config do container (OBRIGATÓRIO)
+├── README.md           ← Descrição (opcional)
+└── LICENSE             ← Licença (opcional)
+
+========================================================
+NOTAS IMPORTANTES
+========================================================
+
+- A versão web (app.py) e a versão local (main.py) são
+  independentes. Ambas funcionam.
+
+- O tier gratuito do HF Spaces tem limite de RAM e CPU.
+
+- O app entra em "sleep" após 48h sem uso. Ele acorda
+  automaticamente quando alguém acessa (~1 min).
