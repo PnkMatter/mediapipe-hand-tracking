@@ -324,6 +324,7 @@ Contributions are welcome! Some ideas for improvement:
 
 Feel free to open issues or submit pull requests.
 
+Gabriel Resende
 ---
 
 ## License
