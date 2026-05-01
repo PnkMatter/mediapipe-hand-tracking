@@ -12,6 +12,7 @@ import json
 import os
 import urllib.request
 import threading
+import logging
 import mediapipe as mp
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import (
@@ -39,6 +40,22 @@ def ensure_model():
     if not os.path.exists(MODEL_PATH):
         st.info("Baixando modelo MediaPipe Hand Landmarker (~7MB)...")
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+
+def get_ice_servers():
+    """Busca servidores ICE (TURN+STUN) do Twilio para WebRTC.
+    Configure os secrets TWILIO_ACCOUNT_SID e TWILIO_AUTH_TOKEN
+    nas configurações do HuggingFace Space (Settings > Secrets).
+    """
+    try:
+        account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
+        auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
+        from twilio.rest import Client
+        client = Client(account_sid, auth_token)
+        token = client.tokens.create()
+        return token.ice_servers
+    except Exception as e:
+        st.warning(f"⚠️ TURN não configurado ({e}). Usando apenas STUN — a conexão pode falhar.")
+        return [{"urls": ["stun:stun.l.google.com:19302"]}]
 
 # ==========================================
 # FUNÇÕES DE RENDERIZAÇÃO (mesmo do main.py)
@@ -336,19 +353,10 @@ with col2:
     """)
 
 with col1:
-    RTC_CONFIG = {
-        "iceServers": [
-            {"urls": ["stun:stun.l.google.com:19302"]},
-            {"urls": ["stun:stun1.l.google.com:19302"]},
-            {"urls": ["stun:stun2.l.google.com:19302"]},
-            {"urls": ["stun:stun3.l.google.com:19302"]},
-            {"urls": ["stun:stun4.l.google.com:19302"]},
-        ]
-    }
     ctx = webrtc_streamer(
         key="voxel-builder",
         video_processor_factory=VoxelProcessor,
-        rtc_configuration=RTC_CONFIG,
+        rtc_configuration={"iceServers": get_ice_servers()},
         media_stream_constraints={"video": {"width": 640, "height": 480}, "audio": False},
         async_processing=True,
     )
