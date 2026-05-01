@@ -8,6 +8,10 @@ voxel_art.obj
 # Arquivo de prompts pessoal
 prompt.txt
 
+# Guias de deploy (úteis localmente, não precisam ir pro repo)
+DEPLOY.txt
+TWILIO_GUIDE.txt
+
 # Python
 __pycache__/
 *.pyc

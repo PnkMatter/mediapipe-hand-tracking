@@ -10,6 +10,7 @@ import numpy as np
 import math
 import json
 import os
+import time
 import urllib.request
 import threading
 import logging
@@ -35,6 +36,8 @@ CORES_MENU = [
     (0, 200, 200), (200, 0, 200), (200, 200, 200)
 ]
 NOMES_CORES = ["Verde", "Vermelho", "Azul", "Amarelo", "Magenta", "Branco"]
+
+COOLDOWN_COLOCAR = 0.3   # segundos entre cada posicionamento de bloco
 
 def ensure_model():
     if not os.path.exists(MODEL_PATH):
@@ -150,6 +153,7 @@ class VoxelProcessor(VideoProcessorBase):
         self._lock = threading.Lock()
         self._clear_flag = False
         self._reset_flag = False
+        self._ultimo_colocar = 0.0
 
         opts = HandLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=MODEL_PATH),
@@ -272,12 +276,16 @@ class VoxelProcessor(VideoProcessorBase):
 
             if estado == "CONSTRUINDO":
                 pos = (gfx, gfy, gfz)
-                if not self.pinca_anterior:
+                agora = time.time()
+                pode_colocar = (agora - self._ultimo_colocar) >= COOLDOWN_COLOCAR
+                if not self.pinca_anterior and pode_colocar:
                     self._colocar(gfx, gfy, gfz)
                     self.ultima_pos = pos
-                elif self.ultima_pos and self.ultima_pos != pos:
+                    self._ultimo_colocar = agora
+                elif self.ultima_pos and self.ultima_pos != pos and pode_colocar:
                     self._colocar(gfx, gfy, gfz)
                     self.ultima_pos = pos
+                    self._ultimo_colocar = agora
                 self.pinca_anterior = True
 
             elif estado == "APAGANDO" and self.blocos:

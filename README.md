@@ -14,9 +14,12 @@ pinned: false
 
 An augmented reality voxel construction engine controlled entirely by hand gestures. Built with **Python**, **OpenCV**, and **MediaPipe's Hand Landmarker**, this project lets you build 3D isometric structures in real-time using your webcam — no mouse or keyboard required for building.
 
+**🌐 [Try it live on Hugging Face Spaces](https://huggingface.co/spaces/PnkMatter/ar-voxel-builder)**
+
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10.30%2B-orange?logo=google)
 ![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green?logo=opencv)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-red?logo=streamlit)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
@@ -26,13 +29,11 @@ An augmented reality voxel construction engine controlled entirely by hand gestu
 - [Overview](#overview)
 - [Features](#features)
 - [How It Works](#how-it-works)
-- [Demo Controls](#demo-controls)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Live Demo (Web)](#live-demo-web)
+- [Local Version](#local-version)
 - [Project Structure](#project-structure)
 - [Technical Details](#technical-details)
+- [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 
@@ -43,11 +44,15 @@ An augmented reality voxel construction engine controlled entirely by hand gestu
 This project combines computer vision and isometric rendering to create a Minecraft-like building experience in augmented reality. The system tracks two hands simultaneously through a **State Machine** with four modes:
 
 - **IDLE** — No action, cursor tracking only
-- **BUILDING** — Place blocks (single or continuous)
+- **BUILDING** — Place blocks (single or continuous, with 300ms cooldown)
 - **ERASING** — Remove blocks
 - **MOVING MODEL** — Grab & move the entire structure
 
 Blocks float freely in 3D space with no base grid — build anywhere!
+
+The project has **two versions**:
+- **`app.py`** — Web version (Streamlit + WebRTC), deployed on Hugging Face Spaces
+- **`main.py`** — Local desktop version (OpenCV window)
 
 ---
 
@@ -58,15 +63,15 @@ Blocks float freely in 3D space with no base grid — build anywhere!
 | ✋ **Dual Hand Tracking** | Left hand for aiming, right hand for actions |
 | 🧱 **Free-form Building** | Place blocks anywhere in 3D space (no base grid) |
 | 🔄 **Continuous Building** | Hold pinch and drag to build walls and lines |
+| ⏱️ **Placement Cooldown** | 300ms interval prevents accidental rapid placement |
 | 🗑️ **Block Deletion** | Open palm gesture removes the nearest block |
 | 👻 **Face-Adjacent Ghost** | Preview appears on the face of existing blocks closest to your finger |
-| 📐 **Block Scaling** | Toggle 1×, 2×, or 3× block size via gesture or keyboard |
-| 🎨 **Color Palette** | 6 colors, switchable via gesture or on-screen palette |
+| 📐 **Block Scaling** | Toggle 1×, 2×, or 3× block size |
+| 🎨 **Color Palette** | 6 colors, switchable via sidebar or gesture |
 | 🤏 **Grab & Move** | Two closed fists to translate the entire structure |
-| ❓ **Help Screen** | Press `H` to see all shortcuts and gestures |
 | 💾 **Save / Load** | Persist your builds to JSON files |
-| 📦 **OBJ Export** | Export as a 3D `.obj` mesh for Blender, Unity, etc. |
 | 🎯 **Anti-Jitter Filter** | EMA smoothing for stable cursor tracking |
+| 🌐 **Web Version** | Run in the browser via Hugging Face Spaces |
 
 ---
 
@@ -83,17 +88,10 @@ The tip of your **index finger** (landmark #8) controls a crosshair on screen. A
 
 | Gesture | Description | Action |
 |---|---|---|
-| **Pinch (Index + Thumb)** | Tips of index and thumb together | **Place block** at ghost position |
+| **👌 Pinch** | Index + thumb tips together | **Place block** at ghost position |
 | **Hold pinch + move** | Keep pinch while moving left hand | **Continuous building** along path |
-| **Open palm (5 fingers)** | All fingers extended | **Delete** nearest block |
-| **Thumb + Ring finger** | Tips together | **Cycle color** to next in palette |
-| **Thumb + Pinky** | Tips together | **Cycle block scale** (1×→2×→3×) |
-
-#### Two-Hand Gestures
-
-| Gesture | Action |
-|---|---|
-| **Two closed fists** | **Grab & Move** — translate entire structure |
+| **✋ Open palm** | All 5 fingers extended | **Delete** nearest block |
+| **✊✊ Two closed fists** | Both hands closed | **Grab & Move** entire structure |
 
 ### Isometric Projection
 
@@ -110,92 +108,72 @@ If no blocks exist, the ghost appears at the grid position at Z=0.
 
 ---
 
-## Demo Controls
+## Live Demo (Web)
 
-```
-  Left Hand (index finger)          Right Hand (gesture actions)
-  ┌──────────────────────┐          ┌──────────────────────────────┐
-  │                      │          │                              │
-  │   👆 Index finger    │          │  👌 Pinch = PLACE            │
-  │   moves the cursor   │          │  ✋ Open palm = DELETE        │
-  │                      │          │  🤏 Thumb+Ring = COLOR        │
-  │                      │          │  🤙 Thumb+Pinky = SCALE      │
-  └──────────────────────┘          └──────────────────────────────┘
-```
+**🌐 https://huggingface.co/spaces/PnkMatter/ar-voxel-builder**
+
+The web version runs on Hugging Face Spaces using Streamlit + WebRTC:
+
+1. Open the link above
+2. Allow camera access when prompted
+3. Click **START** on the video player
+4. Use the sidebar controls to change color, scale, etc.
+5. Use hand gestures to build!
+
+### Web Controls (Sidebar)
+
+| Control | Description |
+|---|---|
+| 🎨 Color | Select block color |
+| 📐 Scale | Choose block size (1×, 2×, 3×) |
+| 🗑️ Clear All | Remove all blocks |
+| 🔄 Reset Camera | Reset view position |
+| 💾 Save/Load | Download or upload JSON projects |
 
 ---
 
-## Prerequisites
+## Local Version
+
+### Prerequisites
 
 - **Python** 3.10 or higher
 - A **webcam** (built-in or external)
 - **pip** package manager
 
----
-
-## Installation
-
-### 1. Clone the repository
+### Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/mediapipe-hand-tracking.git
+# 1. Clone the repository
+git clone https://github.com/PnkMatter/mediapipe-hand-tracking.git
 cd mediapipe-hand-tracking
-```
 
-### 2. Install dependencies
-
-```bash
+# 2. Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Download the Hand Landmarker model
-
-The project requires the MediaPipe Hand Landmarker model file (`.task`). Download it into the project root:
-
-```bash
+# 3. Download the Hand Landmarker model (~7MB)
 # Linux / macOS
 curl -O https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
 
 # Windows (PowerShell)
 Invoke-WebRequest -Uri "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task" -OutFile "hand_landmarker.task"
+
+# 4. Run
+python main.py
 ```
 
 > **Note:** The `.task` file is ~7 MB and is **not included in the repository** (listed in `.gitignore`).
 
-### 4. Verify your setup
-
-```bash
-python -c "import cv2, mediapipe, numpy; print('All dependencies OK!')"
-```
-
----
-
-## Usage
-
-```bash
-python main.py
-```
-
-1. The application will open your webcam and display the AR view.
-2. Use your **left hand's index finger** to move the cursor.
-3. Use your **right hand** to perform gestures (pinch, open palm, etc.)
-4. Hover the cursor over the **color palette** (top-left) and pinch to select a color.
-5. Press **H** to see all available shortcuts.
-6. Press **ESC** to exit.
-
----
-
-## Keyboard Shortcuts
+### Keyboard Shortcuts (Local Only)
 
 | Key | Action |
 |---|---|
-| `H` | Toggle help screen (shows all shortcuts) |
+| `H` | Toggle help screen |
 | `ESC` | Quit the application |
 | `C` | Clear all blocks |
-| `S` | Save the current build to `mundo_voxel.json` |
-| `L` | Load a previously saved build |
-| `O` | Export the build as `voxel_art.obj` |
-| `R` | Reset camera position (after Grab & Move) |
+| `S` | Save to `mundo_voxel.json` |
+| `L` | Load a saved build |
+| `O` | Export as `voxel_art.obj` |
+| `R` | Reset camera position |
 | `+` / `-` | Increase / decrease block scale |
 
 ---
@@ -204,14 +182,16 @@ python main.py
 
 ```
 mediapipe-hand-tracking/
-├── main.py                  # Main application (rendering, tracking, logic)
-├── hand_landmarker.task     # MediaPipe model (downloaded separately, in .gitignore)
+├── app.py                   # Web version (Streamlit + WebRTC)
+├── main.py                  # Local desktop version (OpenCV)
 ├── requirements.txt         # Python dependencies
+├── packages.txt             # System dependencies (HF Spaces)
+├── hand_landmarker.task     # MediaPipe model (downloaded separately, in .gitignore)
 ├── .gitignore               # Git ignore rules
 ├── LICENSE                  # MIT License
 ├── README.md                # This file
-├── mundo_voxel.json         # Save file (auto-generated, in .gitignore)
-└── voxel_art.obj            # Exported 3D mesh (auto-generated, in .gitignore)
+├── DEPLOY.txt               # HuggingFace Space re-deploy guide
+└── TWILIO_GUIDE.txt         # Twilio TURN server setup guide
 ```
 
 ---
@@ -223,7 +203,7 @@ mediapipe-hand-tracking/
 ```
 ┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Webcam    │───>│  MediaPipe Hand  │───>│  Gesture Logic  │
-│   (OpenCV)  │    │   Landmarker     │    │  (6 detectors)  │
+│  (WebRTC)   │    │   Landmarker     │    │  (3 detectors)  │
 └─────────────┘    └──────────────────┘    └────────┬────────┘
                                                     │
                                               ┌─────┴─────┐
@@ -232,52 +212,30 @@ mediapipe-hand-tracking/
                                               └─────┬─────┘
                                                     │
 ┌─────────────┐    ┌──────────────────┐    ┌────────┴────────┐
-│   Display   │<───│  Isometric       │<───│  Voxel Engine   │
-│   (OpenCV)  │    │  Renderer        │    │  (Add/Remove)   │
+│  Streamlit  │<───│  Isometric       │<───│  Voxel Engine   │
+│  (Browser)  │    │  Renderer        │    │  (Add/Remove)   │
 └─────────────┘    └──────────────────┘    └─────────────────┘
-```
-
-### State Machine
-
-```
-          ┌──────────┐
-          │   IDLE   │◄─── No gesture detected
-          └────┬─────┘
-               │
-    ┌──────────┼──────────┐
-    │          │          │
-    ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────────┐
-│BUILDING│ │ERASING │ │MOVING_MODEL│
-│(Pinch) │ │(Palm)  │ │(2 Fists)   │
-└────────┘ └────────┘ └────────────┘
 ```
 
 ### Key Parameters
 
 | Parameter | Value | Description |
 |---|---|---|
-| `TAMANHO_MATRIZ` | 10 | Maximum grid range |
 | `LARGURA_BLOCO` | 40 px | Isometric block width |
 | `ALTURA_BLOCO` | 20 px | Isometric block height |
 | `EMA_ALPHA` | 0.3 | Cursor smoothing factor |
+| `COOLDOWN_COLOCAR` | 0.3 s | Interval between block placements |
 | `escala_bloco` | 1-3 | Block scale (1×, 2×, 3×) |
 | `num_hands` | 2 | Maximum tracked hands |
-| `min_detection_confidence` | 0.7 | Hand detection threshold |
-
-### MediaPipe Tasks API
-
-This project uses the **new MediaPipe Tasks API** (`mp.tasks.python.vision.HandLandmarker`) with `LIVE_STREAM` running mode for asynchronous, non-blocking hand detection.
+| `min_detection_confidence` | 0.6 | Hand detection threshold |
 
 ### Gesture Detection Functions
 
 | Function | Gesture | Landmarks Used |
 |---|---|---|
 | `detectar_pinca()` | Pinch | Thumb tip (#4) + Index tip (#8) |
-| `detectar_mao_espalmada()` | Open palm | All 5 finger tips vs PIPs |
-| `detectar_punho_fechado()` | Closed fist | All tips below MCPs |
-| `detectar_polegar_anelar()` | Thumb + Ring | Thumb tip (#4) + Ring tip (#16) |
-| `detectar_polegar_mindinho()` | Thumb + Pinky | Thumb tip (#4) + Pinky tip (#20) |
+| `detectar_espalmada()` | Open palm | All 5 finger tips vs PIPs |
+| `detectar_punho()` | Closed fist | All tips below MCPs |
 
 ### Save Format (`mundo_voxel.json`)
 
@@ -289,37 +247,39 @@ This project uses the **new MediaPipe Tasks API** (`mp.tasks.python.vision.HandL
 ]
 ```
 
-### OBJ Export
+---
 
-Each voxel is exported as a unit cube with 8 vertices and 6 quad faces. The `.obj` file can be imported into Blender, Unity, Unreal Engine, or any 3D software.
+## Deployment
+
+The web version is deployed on **Hugging Face Spaces** using the Streamlit SDK.
+
+### Requirements for deployment:
+- A [Twilio](https://www.twilio.com/try-twilio) account (free trial) for TURN servers
+- TURN server credentials set as secrets in the HF Space
+
+See [DEPLOY.txt](DEPLOY.txt) and [TWILIO_GUIDE.txt](TWILIO_GUIDE.txt) for detailed instructions.
 
 ---
 
 ## Troubleshooting
 
-### `FileNotFoundError: hand_landmarker.task`
+### Web Version
 
-Download the model file. See [Installation — Step 3](#3-download-the-hand-landmarker-model).
+| Problem | Solution |
+|---|---|
+| Camera doesn't connect | Check browser permissions, try Chrome |
+| "TURN não configurado" warning | Add Twilio secrets to HF Space settings |
+| Video freezes/disconnects | Network issue — TURN may be needed |
+| "Runtime Error" on HF | Check Logs tab for details |
 
-### Camera not opening / black screen
+### Local Version
 
-- Verify your webcam is connected and not being used by another application.
-- Try changing `cv2.VideoCapture(0)` to `cv2.VideoCapture(1)` if you have multiple cameras.
-
-### Low FPS / laggy tracking
-
-- Close other applications using the webcam.
-- Reduce the resolution in `main.py`:
-  ```python
-  cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-  cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-  ```
-
-### Hands not detected / wrong hand labels
-
-- Ensure good lighting conditions.
-- Keep your hands within the camera frame.
-- MediaPipe mirrors the labels — "Left" on screen corresponds to your left hand (since the image is flipped).
+| Problem | Solution |
+|---|---|
+| `FileNotFoundError: hand_landmarker.task` | Download the model (see Installation) |
+| Camera not opening | Check webcam connection, try index 1 |
+| Low FPS | Close other camera apps, reduce resolution |
+| Hands not detected | Improve lighting, keep hands in frame |
 
 ---
 
