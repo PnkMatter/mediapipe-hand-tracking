@@ -2,9 +2,9 @@
   GUIA DE DEPLOY — AR Voxel Builder no Hugging Face Spaces
 ========================================================
 
-PLATAFORMA: Hugging Face Spaces (Docker SDK)
+PLATAFORMA: Hugging Face Spaces (Streamlit SDK)
 CUSTO: Gratuito (tier básico com CPU)
-URL FINAL: https://huggingface.co/spaces/SEU_USUARIO/ar-voxel-builder
+URL FINAL: https://huggingface.co/spaces/PnkMatter/ar-voxel-builder
 
 ========================================================
 PASSO 1 — Criar conta no Hugging Face
@@ -21,7 +21,7 @@ PASSO 2 — Criar um novo Space
    - Owner: seu usuário
    - Space name: ar-voxel-builder
    - License: MIT
-   - SDK: Docker  (selecione "Docker")
+   - SDK: Streamlit  (selecione "Streamlit")
    - Hardware: CPU Basic (gratuito)
 3. Clique em "Create Space"
 
@@ -38,40 +38,44 @@ OPÇÃO A — Via interface web (mais fácil):
    OBRIGATÓRIOS:
    - app.py              (aplicação Streamlit)
    - requirements.txt    (dependências Python)
-   - Dockerfile          (configuração do container)
+   - packages.txt        (dependências de sistema: libgl1, libglib2.0-0)
+   - README.md           (contém front matter YAML do HF Spaces)
 
-   OPCIONAIS (recomendados):
-   - README.md           (descrição do projeto)
+   OPCIONAIS:
    - LICENSE             (licença MIT)
 
    NÃO ENVIE:
    - main.py             (versão local, não funciona na web)
-   - hand_landmarker.task (será baixado automaticamente)
+   - hand_landmarker.task (será baixado automaticamente pelo app)
    - mundo_voxel.json    (arquivo de save local)
    - prompt.txt          (arquivo de prompts pessoal)
-   - packages.txt        (não é necessário com Docker)
+   - Dockerfile          (NÃO usar — conflita com sdk: streamlit)
 
 4. Clique em "Commit changes"
 
-OPÇÃO B — Via Git (para desenvolvedores):
+OPÇÃO B — Via Git (mais rápido):
 
-   git clone https://huggingface.co/spaces/SEU_USUARIO/ar-voxel-builder
+   git clone https://huggingface.co/spaces/PnkMatter/ar-voxel-builder
    cd ar-voxel-builder
 
    # Copie os arquivos necessários para esta pasta:
-   # app.py, requirements.txt, Dockerfile, README.md, LICENSE
+   # app.py, requirements.txt, packages.txt, README.md, LICENSE
+
+   # Remova o Dockerfile se existir:
+   # del Dockerfile  (Windows)
+   # rm Dockerfile   (Linux/Mac)
 
    git add .
-   git commit -m "Initial deploy"
+   git commit -m "Fix: SDK config, indentation bug, STUN servers"
    git push
 
 ========================================================
 PASSO 4 — Aguardar o build
 ========================================================
 1. O Hugging Face vai automaticamente:
-   - Construir o container Docker
-   - Instalar as dependências
-   - Iniciar o Streamlit na porta 7860
+   - Instalar os pacotes de sistema (packages.txt)
+   - Instalar as dependências Python (requirements.txt)
+   - Iniciar o Streamlit na porta padrão
 2. O build leva de 3 a 8 minutos
 3. Acompanhe o progresso na aba "Logs" do Space
 4. Quando aparecer "You can now view your Streamlit app"
@@ -87,41 +91,70 @@ PASSO 5 — Testar
 5. Use os controles no painel lateral (cor, escala, etc.)
 
 ========================================================
-SOLUÇÃO DE PROBLEMAS
-========================================================
-
-PROBLEMA: Vídeo não conecta / tela preta
-- Verifique se o navegador tem permissão de webcam
-- Tente em Chrome ou Firefox (Safari pode ter problemas)
-- Tente em aba anônima (limpa cache)
-
-PROBLEMA: Build falha no Hugging Face
-- Verifique os logs na aba "Logs" do Space
-- Certifique-se que o Dockerfile está correto
-- Certifique-se que o requirements.txt está correto
-
-PROBLEMA: App lento / muita latência
-- Normal no tier gratuito (~100-300ms de delay)
-- Para melhor experiência, use a versão local (main.py)
-
-PROBLEMA: "Model not found"
-- O app baixa o modelo automaticamente na primeira vez
-- Se falhar, verifique os logs para erros de rede
-
-========================================================
 ESTRUTURA DE ARQUIVOS PARA O SPACE
 ========================================================
 
 ar-voxel-builder/
 ├── app.py              ← Aplicação Streamlit (OBRIGATÓRIO)
 ├── requirements.txt    ← Dependências Python (OBRIGATÓRIO)
-├── Dockerfile          ← Config do container (OBRIGATÓRIO)
-├── README.md           ← Descrição (opcional)
-└── LICENSE             ← Licença (opcional)
+├── packages.txt        ← Dependências de sistema (OBRIGATÓRIO)
+├── README.md           ← Front matter YAML + descrição (OBRIGATÓRIO)
+└── LICENSE             ← Licença MIT (opcional)
+
+========================================================
+CONFIGURAÇÃO DO README.md (FRONT MATTER)
+========================================================
+
+O README.md DEVE começar com este bloco YAML:
+
+---
+title: AR Voxel Builder
+emoji: 🧱
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: "1.30.0"
+python_version: "3.11"
+app_file: app.py
+pinned: false
+---
+
+ATENÇÃO: Sem este front matter, o HF não sabe qual SDK usar!
+
+========================================================
+SOLUÇÃO DE PROBLEMAS
+========================================================
+
+PROBLEMA: "Runtime Error" / app não inicia
+- Verifique os logs na aba "Logs" > "Container"
+- Procure por "IndentationError" ou "ImportError"
+- Certifique-se de que o app.py enviado é o CORRETO
+  (o arquivo pode ficar corrompido ao editar pelo site)
+
+PROBLEMA: Build falha no Hugging Face
+- Verifique os logs na aba "Logs" > "Build"
+- Certifique-se que o packages.txt está presente
+- Certifique-se que o requirements.txt está correto
+
+PROBLEMA: Vídeo não conecta / tela preta
+- Verifique se o navegador tem permissão de webcam
+- Tente em Chrome ou Firefox (Safari pode ter problemas)
+- Tente em aba anônima (limpa cache)
+- WebRTC pode falhar atrás de firewalls corporativos
+
+PROBLEMA: "Model not found"
+- O app baixa o modelo automaticamente na primeira vez
+- Se falhar, verifique os logs para erros de rede
+
+PROBLEMA: App lento / muita latência
+- Normal no tier gratuito (~100-300ms de delay)
+- Para melhor experiência, use a versão local (main.py)
 
 ========================================================
 NOTAS IMPORTANTES
 ========================================================
+
+- NÃO use Dockerfile com sdk: streamlit. Escolha um ou outro.
 
 - A versão web (app.py) e a versão local (main.py) são
   independentes. Ambas funcionam.
@@ -130,3 +163,6 @@ NOTAS IMPORTANTES
 
 - O app entra em "sleep" após 48h sem uso. Ele acorda
   automaticamente quando alguém acessa (~1 min).
+
+- O packages.txt é lido pelo HF Spaces para instalar
+  dependências de sistema via apt-get (apenas com sdk: streamlit).

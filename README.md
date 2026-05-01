@@ -1,3 +1,15 @@
+---
+title: AR Voxel Builder
+emoji: 🧱
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: "1.30.0"
+python_version: "3.11"
+app_file: app.py
+pinned: false
+---
+
 # 🖐️ AR Voxel Builder — Hand Tracking with MediaPipe
 
 An augmented reality voxel construction engine controlled entirely by hand gestures. Built with **Python**, **OpenCV**, and **MediaPipe's Hand Landmarker**, this project lets you build 3D isometric structures in real-time using your webcam — no mouse or keyboard required for building.
